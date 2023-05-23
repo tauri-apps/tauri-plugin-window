@@ -1,4 +1,22 @@
+/**
+ * Provides APIs to create windows, communicate with other windows and manipulate the current window.
+ *
+ * ## Window events
+ *
+ * Events can be listened to using `appWindow.listen`:
+ * ```typescript
+ * import { appWindow } from "@tauri-apps/window";
+ * appWindow.listen("my-window-event", ({ event, payload }) => { });
+ * ```
+ *
+ * @module
+ */
 import type { Event, EventName, EventCallback, UnlistenFn } from "@tauri-apps/api/event";
+declare global {
+    interface Window {
+        __TAURI_INVOKE__: <T>(cmd: string, args?: unknown) => Promise<T>;
+    }
+}
 type Theme = "light" | "dark";
 type TitleBarStyle = "visible" | "transparent" | "overlay";
 /**
