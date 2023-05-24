@@ -70,7 +70,7 @@ async function once(event, windowLabel, handler) {
 /**
  * A size represented in logical pixels.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 class LogicalSize {
     constructor(width, height) {
@@ -82,7 +82,7 @@ class LogicalSize {
 /**
  * A size represented in physical pixels.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 class PhysicalSize {
     constructor(width, height) {
@@ -107,7 +107,7 @@ class PhysicalSize {
 /**
  *  A position represented in logical pixels.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 class LogicalPosition {
     constructor(x, y) {
@@ -119,7 +119,7 @@ class LogicalPosition {
 /**
  *  A position represented in physical pixels.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 class PhysicalPosition {
     constructor(x, y) {
@@ -144,7 +144,7 @@ class PhysicalPosition {
 /**
  * Attention type to request on a window.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 var UserAttentionType;
 (function (UserAttentionType) {
@@ -164,7 +164,7 @@ var UserAttentionType;
 /**
  * Get an instance of `WebviewWindow` for the current webview window.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 function getCurrent() {
     return new WebviewWindow(window.__TAURI_METADATA__.__currentWindow.label, {
@@ -175,7 +175,7 @@ function getCurrent() {
 /**
  * Gets a list of instances of `WebviewWindow` for all available webview windows.
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 function getAll() {
     return window.__TAURI_METADATA__.__windows.map((w) => new WebviewWindow(w.label, {
@@ -190,7 +190,7 @@ const localTauriEvents = ["tauri://created", "tauri://error"];
  * A webview window handle allows emitting and listening to events from the backend that are tied to the window.
  *
  * @ignore
- * @since 1.0.0
+ * @since 2.0.0
  */
 class WebviewWindowHandle {
     constructor(label) {
@@ -216,6 +216,8 @@ class WebviewWindowHandle {
      * @param handler Event handler.
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+     *
+     * @since 2.0.0
      */
     async listen(event, handler) {
         if (this._handleTauriEvent(event, handler)) {
@@ -245,6 +247,8 @@ class WebviewWindowHandle {
      * @param handler Event handler.
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+     *
+     * @since 2.0.0
      */
     async once(event, handler) {
         if (this._handleTauriEvent(event, handler)) {
@@ -297,7 +301,7 @@ class WebviewWindowHandle {
  * Manage the current window object.
  *
  * @ignore
- * @since 1.0.0
+ * @since 2.0.0
  */
 class WindowManager extends WebviewWindowHandle {
     // Getters
@@ -310,6 +314,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window's monitor scale factor.
+     *
+     * @since 2.0.0
      * */
     async scaleFactor() {
         return window.__TAURI_INVOKE__("plugin:window|scale_factor", {
@@ -325,6 +331,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window's inner position.
+     *
+     * @since 2.0.0
      *  */
     async innerPosition() {
         return window
@@ -342,6 +350,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window's outer position.
+     *
+     * @since 2.0.0
      *  */
     async outerPosition() {
         return window
@@ -360,6 +370,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window's inner size.
+     *
+     * @since 2.0.0
      */
     async innerSize() {
         return window
@@ -378,6 +390,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window's outer size.
+     *
+     * @since 2.0.0
      */
     async outerSize() {
         return window
@@ -395,6 +409,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns Whether the window is in fullscreen mode or not.
+     *
+     * @since 2.0.0
      *  */
     async isFullscreen() {
         return window.__TAURI_INVOKE__("plugin:window|is_fullscreen", {
@@ -409,7 +425,7 @@ class WindowManager extends WebviewWindowHandle {
      * const minimized = await appWindow.isMinimized();
      * ```
      *
-     * @since 1.3.0
+     * @since 2.0.0
      * */
     async isMinimized() {
         return window.__TAURI_INVOKE__("plugin:window|is_minimized", {
@@ -425,6 +441,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns Whether the window is maximized or not.
+     *
+     * @since 2.0.0
      * */
     async isMaximized() {
         return window.__TAURI_INVOKE__("plugin:window|is_maximized", {
@@ -440,6 +458,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns Whether the window is decorated or not.
+     *
+     * @since 2.0.0
      *  */
     async isDecorated() {
         return window.__TAURI_INVOKE__("plugin:window|is_decorated", {
@@ -455,6 +475,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns Whether the window is resizable or not.
+     *
+     * @since 2.0.0
      *  */
     async isResizable() {
         return window.__TAURI_INVOKE__("plugin:window|is_resizable", {
@@ -470,6 +492,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns Whether the window is visible or not.
+     *
+     * @since 2.0.0
      *  */
     async isVisible() {
         return window.__TAURI_INVOKE__("plugin:window|is_visible", {
@@ -484,7 +508,7 @@ class WindowManager extends WebviewWindowHandle {
      * const title = await appWindow.title();
      * ```
      *
-     * @since 1.3.0
+     * @since 2.0.0
      * */
     async title() {
         return window.__TAURI_INVOKE__("plugin:window|title", {
@@ -505,6 +529,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns The window theme.
+     *
+     * @since 2.0.0
      * */
     async theme() {
         return window.__TAURI_INVOKE__("plugin:window|theme", {
@@ -522,6 +548,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param resizable
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async center() {
         return window.__TAURI_INVOKE__("plugin:window|center", {
@@ -548,6 +576,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param resizable
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async requestUserAttention(requestType) {
         let requestType_ = null;
@@ -574,6 +604,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param resizable
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setResizable(resizable) {
         return window.__TAURI_INVOKE__("plugin:window|set_resizable", {
@@ -591,6 +623,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param title The new title
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setTitle(title) {
         return window.__TAURI_INVOKE__("plugin:window|set_title", {
@@ -607,6 +641,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async maximize() {
         return window.__TAURI_INVOKE__("plugin:window|maximize", {
@@ -622,6 +658,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async unmaximize() {
         return window.__TAURI_INVOKE__("plugin:window|unmaximize", {
@@ -637,6 +675,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async toggleMaximize() {
         return window.__TAURI_INVOKE__("plugin:window|toggle_maximize", {
@@ -652,6 +692,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async minimize() {
         return window.__TAURI_INVOKE__("plugin:window|minimize", {
@@ -667,6 +709,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async unminimize() {
         return window.__TAURI_INVOKE__("plugin:window|unminimize", {
@@ -682,6 +726,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async show() {
         return window.__TAURI_INVOKE__("plugin:window|show", {
@@ -697,6 +743,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async hide() {
         return window.__TAURI_INVOKE__("plugin:window|hide", {
@@ -712,6 +760,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async close() {
         return window.__TAURI_INVOKE__("plugin:window|close", {
@@ -728,6 +778,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param decorations Whether the window should have borders and bars.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setDecorations(decorations) {
         return window.__TAURI_INVOKE__("plugin:window|set_decorations", {
@@ -754,7 +806,7 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @returns A promise indicating the success or failure of the operation.
      *
-     * @since 2.0
+     * @since 2.0.0
      */
     async setShadow(enable) {
         return window.__TAURI_INVOKE__("plugin:window|set_shadow", {
@@ -772,6 +824,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param alwaysOnTop Whether the window should always be on top of other windows or not.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setAlwaysOnTop(alwaysOnTop) {
         return window.__TAURI_INVOKE__("plugin:window|set_always_on_top", {
@@ -789,7 +843,7 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @returns A promise indicating the success or failure of the operation.
      *
-     * @since 1.2.0
+     * @since 2.0.0
      */
     async setContentProtected(protected_) {
         return window.__TAURI_INVOKE__("plugin:window|set_content_protected", {
@@ -807,6 +861,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param size The logical or physical inner size.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setSize(size) {
         if (!size || (size.type !== "Logical" && size.type !== "Physical")) {
@@ -833,6 +889,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param size The logical or physical inner size, or `null` to unset the constraint.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setMinSize(size) {
         if (size && size.type !== "Logical" && size.type !== "Physical") {
@@ -861,6 +919,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param size The logical or physical inner size, or `null` to unset the constraint.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setMaxSize(size) {
         if (size && size.type !== "Logical" && size.type !== "Physical") {
@@ -889,6 +949,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param position The new position, in logical or physical pixels.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setPosition(position) {
         if (!position ||
@@ -916,6 +978,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param fullscreen Whether the window should go to fullscreen or not.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setFullscreen(fullscreen) {
         return window.__TAURI_INVOKE__("plugin:window|set_fullscreen", {
@@ -932,6 +996,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setFocus() {
         return window.__TAURI_INVOKE__("plugin:window|set_focus", {
@@ -955,6 +1021,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param icon Icon bytes or path to the icon file.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setIcon(icon) {
         return window.__TAURI_INVOKE__("plugin:window|set_icon", {
@@ -976,6 +1044,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param skip true to hide window icon, false to show it.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setSkipTaskbar(skip) {
         return window.__TAURI_INVOKE__("plugin:window|set_skip_taskbar", {
@@ -1001,6 +1071,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param grab `true` to grab the cursor icon, `false` to release it.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setCursorGrab(grab) {
         return window.__TAURI_INVOKE__("plugin:window|set_cursor_grab", {
@@ -1024,6 +1096,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param visible If `false`, this will hide the cursor. If `true`, this will show the cursor.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setCursorVisible(visible) {
         return window.__TAURI_INVOKE__("plugin:window|set_cursor_visible", {
@@ -1041,6 +1115,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param icon The new cursor icon.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setCursorIcon(icon) {
         return window.__TAURI_INVOKE__("plugin:window|set_cursor_icon", {
@@ -1058,6 +1134,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param position The new cursor position.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setCursorPosition(position) {
         if (!position ||
@@ -1086,6 +1164,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @param ignore `true` to ignore the cursor events; `false` to process them as usual.
      * @returns A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async setIgnoreCursorEvents(ignore) {
         return window.__TAURI_INVOKE__("plugin:window|set_ignore_cursor_events", {
@@ -1102,6 +1182,8 @@ class WindowManager extends WebviewWindowHandle {
      * ```
      *
      * @return A promise indicating the success or failure of the operation.
+     *
+     * @since 2.0.0
      */
     async startDragging() {
         return window.__TAURI_INVOKE__("plugin:window|start_dragging", {
@@ -1126,7 +1208,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onResized(handler) {
         return this.listen(TauriEvent.WINDOW_RESIZED, (e) => {
@@ -1151,7 +1233,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onMoved(handler) {
         return this.listen(TauriEvent.WINDOW_MOVED, (e) => {
@@ -1181,7 +1263,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     /* eslint-disable @typescript-eslint/promise-function-async */
     async onCloseRequested(handler) {
@@ -1212,7 +1294,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onFocusChanged(handler) {
         const unlistenFocus = await this.listen(TauriEvent.WINDOW_FOCUS, (event) => {
@@ -1247,7 +1329,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onScaleChanged(handler) {
         return this.listen(TauriEvent.WINDOW_SCALE_FACTOR_CHANGED, handler);
@@ -1269,7 +1351,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onMenuClicked(handler) {
         return this.listen(TauriEvent.MENU, handler);
@@ -1299,7 +1381,7 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onFileDropEvent(handler) {
         const unlistenFileDrop = await this.listen(TauriEvent.WINDOW_FILE_DROP, (event) => {
@@ -1334,14 +1416,14 @@ class WindowManager extends WebviewWindowHandle {
      * @returns A promise resolving to a function to unlisten to the event.
      * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
      *
-     * @since 1.0.2
+     * @since 2.0.0
      */
     async onThemeChanged(handler) {
         return this.listen(TauriEvent.WINDOW_THEME_CHANGED, handler);
     }
 }
 /**
- * @since 1.0.2
+ * @since 2.0.0
  */
 class CloseRequestedEvent {
     constructor(event) {
@@ -1388,7 +1470,7 @@ class CloseRequestedEvent {
  * unlisten();
  * ```
  *
- * @since 1.0.2
+ * @since 2.0.0
  */
 class WebviewWindow extends WindowManager {
     /**
@@ -1409,6 +1491,8 @@ class WebviewWindow extends WindowManager {
      *
      * * @param label The unique webview window label. Must be alphanumeric: `a-zA-Z-/:_`.
      * @returns The WebviewWindow instance to communicate with the webview.
+     *
+     * @since 2.0.0
      */
     constructor(label, options = {}) {
         super(label);
@@ -1435,6 +1519,8 @@ class WebviewWindow extends WindowManager {
      *
      * @param label The webview window label.
      * @returns The WebviewWindow instance to communicate with the webview or null if the webview doesn't exist.
+     *
+     * @since 2.0.0
      */
     static getByLabel(label) {
         if (getAll().some((w) => w.label === label)) {
@@ -1484,7 +1570,7 @@ function mapPhysicalSize(m) {
  * const monitor = currentMonitor();
  * ```
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 async function currentMonitor() {
     return window
@@ -1500,7 +1586,7 @@ async function currentMonitor() {
  * const monitor = primaryMonitor();
  * ```
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 async function primaryMonitor() {
     return window
@@ -1515,7 +1601,7 @@ async function primaryMonitor() {
  * const monitors = availableMonitors();
  * ```
  *
- * @since 1.0.0
+ * @since 2.0.0
  */
 async function availableMonitors() {
     return window
