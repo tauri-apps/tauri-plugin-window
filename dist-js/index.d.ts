@@ -5,7 +5,7 @@
  *
  * Events can be listened to using `appWindow.listen`:
  * ```typescript
- * import { appWindow } from "@tauri-apps/window";
+ * import { appWindow } from "@tauri-apps/plugin-window";
  * appWindow.listen("my-window-event", ({ event, payload }) => { });
  * ```
  *
@@ -876,7 +876,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onResized(({ payload: size }) => {
      *  console.log('Window resized', size);
      * });
@@ -896,7 +896,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onMoved(({ payload: position }) => {
      *  console.log('Window moved', position);
      * });
@@ -916,7 +916,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * import { confirm } from '@tauri-apps/api/dialog';
      * const unlisten = await appWindow.onCloseRequested(async (event) => {
      *   const confirmed = await confirm('Are you sure?');
@@ -941,7 +941,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
      *  console.log('Focus changed, window is focused? ' + focused);
      * });
@@ -965,7 +965,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onScaleChanged(({ payload }) => {
      *  console.log('Scale changed', payload.scaleFactor, payload.size);
      * });
@@ -985,7 +985,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onMenuClicked(({ payload: menuId }) => {
      *  console.log('Menu clicked: ' + menuId);
      * });
@@ -1007,7 +1007,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onFileDropEvent((event) => {
      *  if (event.payload.type === 'hover') {
      *    console.log('User hovering', event.payload.paths);
@@ -1033,7 +1033,7 @@ declare class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/window";
+     * import { appWindow } from "@tauri-apps/plugin-window";
      * const unlisten = await appWindow.onThemeChanged(({ payload: theme }) => {
      *  console.log('New theme: ' + theme);
      * });
