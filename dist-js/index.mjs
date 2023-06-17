@@ -1,72 +1,8 @@
-import { TauriEvent } from '@tauri-apps/api/event';
+import { listen, once, emit, TauriEvent } from '@tauri-apps/api/event';
 
 // Copyright 2019-2023 Tauri Programme within The Commons Conservancy
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
-/**
- * Unregister the event listener associated with the given name and id.
- *
- * @ignore
- * @param event The event name
- * @param eventId Event identifier
- * @returns
- */
-async function _unlisten(event, eventId) {
-    await window.__TAURI_INVOKE__("plugin:event|unlisten", {
-        event,
-        eventId,
-    });
-}
-/**
- * Emits an event to the backend.
- *
- * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
- * @param [windowLabel] The label of the window to which the event is sent, if null/undefined the event will be sent to all windows
- * @param [payload] Event payload
- * @returns
- */
-async function emit(event, windowLabel, payload) {
-    await window.__TAURI_INVOKE__("plugin:event|emit", {
-        event,
-        windowLabel,
-        payload,
-    });
-}
-/**
- * Listen to an event from the backend.
- *
- * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
- * @param handler Event handler callback.
- * @return A promise resolving to a function to unlisten to the event.
- */
-async function listen(event, windowLabel, handler) {
-    return window
-        .__TAURI_INVOKE__("plugin:event|listen", {
-        event,
-        windowLabel,
-        handler: window.__TAURI__.transformCallback(handler),
-    })
-        .then((eventId) => {
-        return async () => _unlisten(event, eventId);
-    });
-}
-/**
- * Listen to an one-off event from the backend.
- *
- * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
- * @param handler Event handler callback.
- * @returns A promise resolving to a function to unlisten to the event.
- */
-async function once(event, windowLabel, handler) {
-    return listen(event, windowLabel, (eventData) => {
-        handler(eventData);
-        _unlisten(event, eventData.id).catch(() => {
-            // do nothing
-        });
-    });
-}
-
-// Copyright 2019-2023 Tauri Programme within The Commons Conservancy
 /**
  * A size represented in logical pixels.
  *
@@ -227,7 +163,7 @@ class WebviewWindowHandle {
                 listeners.splice(listeners.indexOf(handler), 1);
             });
         }
-        return listen(event, this.label, handler);
+        return listen(event, handler, { target: this.label });
     }
     /**
      * Listen to an one-off event emitted by the backend that is tied to the webview window.
@@ -258,7 +194,7 @@ class WebviewWindowHandle {
                 listeners.splice(listeners.indexOf(handler), 1);
             });
         }
-        return once(event, this.label, handler);
+        return once(event, handler, { target: this.label });
     }
     /**
      * Emits an event to the backend, tied to the webview window.
@@ -279,7 +215,7 @@ class WebviewWindowHandle {
             }
             return Promise.resolve();
         }
-        return emit(event, this.label, payload);
+        return emit(event, payload, { target: this.label });
     }
     /** @ignore */
     _handleTauriEvent(event, handler) {
