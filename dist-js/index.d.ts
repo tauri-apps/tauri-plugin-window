@@ -390,6 +390,54 @@ declare class WindowManager extends WebviewWindowHandle {
      *  */
     isResizable(): Promise<boolean>;
     /**
+     * Gets the window’s native maximize button state.
+     *
+     * #### Platform-specific
+     *
+     * - **Linux / iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * const maximizable = await appWindow.isMaximizable();
+     * ```
+     *
+     * @returns Whether the window's native maximize button is enabled or not.
+     *  */
+    isMaximizable(): Promise<boolean>;
+    /**
+     * Gets the window’s native minimize button state.
+     *
+     * #### Platform-specific
+     *
+     * - **Linux / iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * const minimizable = await appWindow.isMinimizable();
+     * ```
+     *
+     * @returns Whether the window's native minimize button is enabled or not.
+     *  */
+    isMinimizable(): Promise<boolean>;
+    /**
+     * Gets the window’s native close button state.
+     *
+     * #### Platform-specific
+     *
+     * - **iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * const closable = await appWindow.isClosable();
+     * ```
+     *
+     * @returns Whether the window's native close button is enabled or not.
+     *  */
+    isClosable(): Promise<boolean>;
+    /**
      * Gets the window's current visible state.
      * @example
      * ```typescript
@@ -463,7 +511,7 @@ declare class WindowManager extends WebviewWindowHandle {
      * await appWindow.requestUserAttention();
      * ```
      *
-     * @param resizable
+     * @param requestType
      * @returns A promise indicating the success or failure of the operation.
      *
      * @since 2.0.0
@@ -483,6 +531,60 @@ declare class WindowManager extends WebviewWindowHandle {
      * @since 2.0.0
      */
     setResizable(resizable: boolean): Promise<void>;
+    /**
+     * Sets whether the window's native maximize button is enabled or not.
+     * If resizable is set to false, this setting is ignored.
+     *
+     * #### Platform-specific
+     *
+     * - **macOS:** Disables the "zoom" button in the window titlebar, which is also used to enter fullscreen mode.
+     * - **Linux / iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * await appWindow.setMaximizable(false);
+     * ```
+     *
+     * @param maximizable
+     * @returns A promise indicating the success or failure of the operation.
+     */
+    setMaximizable(maximizable: boolean): Promise<void>;
+    /**
+     * Sets whether the window's native minimize button is enabled or not.
+     *
+     * #### Platform-specific
+     *
+     * - **Linux / iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * await appWindow.setMinimizable(false);
+     * ```
+     *
+     * @param minimizable
+     * @returns A promise indicating the success or failure of the operation.
+     */
+    setMinimizable(minimizable: boolean): Promise<void>;
+    /**
+     * Sets whether the window's native close button is enabled or not.
+     *
+     * #### Platform-specific
+     *
+     * - **Linux:** GTK+ will do its best to convince the window manager not to show a close button. Depending on the system, this function may not have any effect when called on a window that is already visible
+     * - **iOS / Android:** Unsupported.
+     *
+     * @example
+     * ```typescript
+     * import { appWindow } from '@tauri-apps/plugin-window';
+     * await appWindow.setClosable(false);
+     * ```
+     *
+     * @param closable
+     * @returns A promise indicating the success or failure of the operation.
+     */
+    setClosable(closable: boolean): Promise<void>;
     /**
      * Sets the window title.
      * @example
@@ -1454,6 +1556,18 @@ interface WindowOptions {
      * - **Android:** Unsupported.
      */
     incognito?: boolean;
+    /**
+     * Whether the window's native maximize button is enabled or not. Defaults to `true`.
+     */
+    maximizable?: boolean;
+    /**
+     * Whether the window's native minimize button is enabled or not. Defaults to `true`.
+     */
+    minimizable?: boolean;
+    /**
+     * Whether the window's native close button is enabled or not. Defaults to `true`.
+     */
+    closable?: boolean;
 }
 /**
  * Returns the monitor on which the window currently resides.
