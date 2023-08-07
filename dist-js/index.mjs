@@ -30,7 +30,8 @@ class PhysicalSize {
      * Converts the physical size to a logical one.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const appWindow = getCurrent();
      * const factor = await appWindow.scaleFactor();
      * const size = await appWindow.innerSize();
      * const logical = size.toLogical(factor);
@@ -67,7 +68,8 @@ class PhysicalPosition {
      * Converts the physical position to a logical one.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const appWindow = getCurrent();
      * const factor = await appWindow.scaleFactor();
      * const position = await appWindow.innerPosition();
      * const logical = position.toLogical(factor);
@@ -97,24 +99,38 @@ var UserAttentionType;
      */
     UserAttentionType[UserAttentionType["Informational"] = 2] = "Informational";
 })(UserAttentionType || (UserAttentionType = {}));
+class CloseRequestedEvent {
+    constructor(event) {
+        this._preventDefault = false;
+        this.event = event.event;
+        this.windowLabel = event.windowLabel;
+        this.id = event.id;
+    }
+    preventDefault() {
+        this._preventDefault = true;
+    }
+    isPreventDefault() {
+        return this._preventDefault;
+    }
+}
 /**
- * Get an instance of `WebviewWindow` for the current webview window.
+ * Get an instance of `Window` for the current window.
  *
  * @since 2.0.0
  */
 function getCurrent() {
-    return new WebviewWindow(window.__TAURI_METADATA__.__currentWindow.label, {
+    return new Window(window.__TAURI_METADATA__.__currentWindow.label, {
         // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
         skip: true,
     });
 }
 /**
- * Gets a list of instances of `WebviewWindow` for all available webview windows.
+ * Gets a list of instances of `Window` for all available windows.
  *
  * @since 2.0.0
  */
 function getAll() {
-    return window.__TAURI_METADATA__.__windows.map((w) => new WebviewWindow(w.label, {
+    return window.__TAURI_METADATA__.__windows.map((w) => new Window(w.label, {
         // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
         skip: true,
     }));
@@ -123,24 +139,139 @@ function getAll() {
 // events that are emitted right here instead of by the created webview
 const localTauriEvents = ["tauri://created", "tauri://error"];
 /**
- * A webview window handle allows emitting and listening to events from the backend that are tied to the window.
+ * Create new webview window or get a handle to an existing one.
  *
- * @ignore
+ * Windows are identified by a *label*  a unique identifier that can be used to reference it later.
+ * It may only contain alphanumeric characters `a-zA-Z` plus the following special characters `-`, `/`, `:` and `_`.
+ *
+ * @example
+ * ```typescript
+ * // loading embedded asset:
+ * const appWindow = new Window('theUniqueLabel', {
+ *   url: 'path/to/page.html'
+ * });
+ * // alternatively, load a remote URL:
+ * const appWindow = new Window('theUniqueLabel', {
+ *   url: 'https://github.com/tauri-apps/tauri'
+ * });
+ *
+ * appWindow.once('tauri://created', function () {
+ *  // window successfully created
+ * });
+ * appWindow.once('tauri://error', function (e) {
+ *  // an error happened creating the window
+ * });
+ *
+ * // emit an event to the backend
+ * await appWindow.emit("some event", "data");
+ * // listen to an event from the backend
+ * const unlisten = await appWindow.listen("event name", e => {});
+ * unlisten();
+ * ```
+ *
  * @since 2.0.0
  */
-class WebviewWindowHandle {
-    constructor(label) {
+class Window {
+    /**
+     * Creates a new Window.
+     * @example
+     * ```typescript
+     * import { Window } from '@tauri-apps/plugin-window';
+     * const appWindow = new Window('my-label', {
+     *   url: 'https://github.com/tauri-apps/tauri'
+     * });
+     * appWindow.once('tauri://created', function () {
+     *  // window successfully created
+     * });
+     * appWindow.once('tauri://error', function (e) {
+     *  // an error happened creating the window
+     * });
+     * ```
+     *
+     * @param label The unique webview window label. Must be alphanumeric: `a-zA-Z-/:_`.
+     * @returns The {@link Window} instance to communicate with the webview.
+     *
+     * @since 2.0.0
+     */
+    constructor(label, options = {}) {
         this.label = label;
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         this.listeners = Object.create(null);
+        // @ts-expect-error `skip` is not a public API so it is not defined in WindowOptions
+        if (!(options === null || options === void 0 ? void 0 : options.skip)) {
+            window
+                .__TAURI_INVOKE__("plugin:window|create", {
+                options: {
+                    ...options,
+                    label,
+                },
+            })
+                .then(async () => this.emit("tauri://created"))
+                .catch(async (e) => this.emit("tauri://error", e));
+        }
+    }
+    /**
+     * Gets the Window for the webview associated with the given label.
+     * @example
+     * ```typescript
+     * import { Window } from '@tauri-apps/plugin-window';
+     * const mainWindow = Window.getByLabel('main');
+     * ```
+     *
+     * @param label The webview window label.
+     * @returns The Window instance to communicate with the webview or null if the webview doesn't exist.
+     *
+     * @since 2.0.0
+     */
+    static getByLabel(label) {
+        if (getAll().some((w) => w.label === label)) {
+            // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
+            return new Window(label, { skip: true });
+        }
+        return null;
+    }
+    /**
+     * Get an instance of `Window` for the current window.
+     *
+     * @since 2.0.0
+     */
+    static getCurrent() {
+        return getCurrent();
+    }
+    /**
+     * Gets a list of instances of `Window` for all available windows.
+     *
+     * @since 2.0.0
+     */
+    static getAll() {
+        return getAll();
+    }
+    /**
+     *  Gets the focused window.
+     * @example
+     * ```typescript
+     * import { Window } from '@tauri-apps/plugin-window';
+     * const focusedWindow = Window.getFocusedWindow();
+     * ```
+     *
+     * @returns The Window instance to communicate with the webview or `undefined` if there is not any focused window.
+     *
+     * @since 1.4
+     */
+    static async getFocusedWindow() {
+        for (const w of getAll()) {
+            if (await w.isFocused()) {
+                return w;
+            }
+        }
+        return null;
     }
     /**
      * Listen to an event emitted by the backend that is tied to the webview window.
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const unlisten = await appWindow.listen<string>('state-changed', (event) => {
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const unlisten = await getCurrent().listen<string>('state-changed', (event) => {
      *   console.log(`Got error: ${payload}`);
      * });
      *
@@ -170,8 +301,8 @@ class WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const unlisten = await appWindow.once<null>('initialized', (event) => {
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const unlisten = await getCurrent().once<null>('initialized', (event) => {
      *   console.log(`Window initialized!`);
      * });
      *
@@ -200,8 +331,8 @@ class WebviewWindowHandle {
      * Emits an event to the backend, tied to the webview window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.emit('window-loaded', { loggedIn: true, token: 'authToken' });
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().emit('window-loaded', { loggedIn: true, token: 'authToken' });
      * ```
      *
      * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
@@ -232,21 +363,13 @@ class WebviewWindowHandle {
         }
         return false;
     }
-}
-/**
- * Manage the current window object.
- *
- * @ignore
- * @since 2.0.0
- */
-class WindowManager extends WebviewWindowHandle {
     // Getters
     /**
      * The scale factor that can be used to map physical pixels to logical pixels.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const factor = await appWindow.scaleFactor();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const factor = await getCurrent().scaleFactor();
      * ```
      *
      * @returns The window's monitor scale factor.
@@ -262,8 +385,8 @@ class WindowManager extends WebviewWindowHandle {
      * The position of the top-left hand corner of the window's client area relative to the top-left hand corner of the desktop.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const position = await appWindow.innerPosition();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const position = await getCurrent().innerPosition();
      * ```
      *
      * @returns The window's inner position.
@@ -281,8 +404,8 @@ class WindowManager extends WebviewWindowHandle {
      * The position of the top-left hand corner of the window relative to the top-left hand corner of the desktop.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const position = await appWindow.outerPosition();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const position = await getCurrent().outerPosition();
      * ```
      *
      * @returns The window's outer position.
@@ -301,8 +424,8 @@ class WindowManager extends WebviewWindowHandle {
      * The client area is the content of the window, excluding the title bar and borders.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const size = await appWindow.innerSize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const size = await getCurrent().innerSize();
      * ```
      *
      * @returns The window's inner size.
@@ -321,8 +444,8 @@ class WindowManager extends WebviewWindowHandle {
      * These dimensions include the title bar and borders. If you don't want that (and you usually don't), use inner_size instead.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const size = await appWindow.outerSize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const size = await getCurrent().outerSize();
      * ```
      *
      * @returns The window's outer size.
@@ -340,8 +463,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current fullscreen state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const fullscreen = await appWindow.isFullscreen();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const fullscreen = await getCurrent().isFullscreen();
      * ```
      *
      * @returns Whether the window is in fullscreen mode or not.
@@ -357,8 +480,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current minimized state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const minimized = await appWindow.isMinimized();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const minimized = await getCurrent().isMinimized();
      * ```
      *
      * @since 2.0.0
@@ -372,8 +495,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current maximized state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const maximized = await appWindow.isMaximized();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const maximized = await getCurrent().isMaximized();
      * ```
      *
      * @returns Whether the window is maximized or not.
@@ -389,8 +512,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current focus state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const focused = await appWindow.isFocused();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const focused = await getCurrent().isFocused();
      * ```
      *
      * @returns Whether the window is focused or not.
@@ -406,8 +529,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current decorated state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const decorated = await appWindow.isDecorated();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const decorated = await getCurrent().isDecorated();
      * ```
      *
      * @returns Whether the window is decorated or not.
@@ -423,8 +546,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current resizable state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const resizable = await appWindow.isResizable();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const resizable = await getCurrent().isResizable();
      * ```
      *
      * @returns Whether the window is resizable or not.
@@ -445,8 +568,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const maximizable = await appWindow.isMaximizable();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const maximizable = await getCurrent().isMaximizable();
      * ```
      *
      * @returns Whether the window's native maximize button is enabled or not.
@@ -465,8 +588,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const minimizable = await appWindow.isMinimizable();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const minimizable = await getCurrent().isMinimizable();
      * ```
      *
      * @returns Whether the window's native minimize button is enabled or not.
@@ -485,8 +608,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const closable = await appWindow.isClosable();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const closable = await getCurrent().isClosable();
      * ```
      *
      * @returns Whether the window's native close button is enabled or not.
@@ -500,8 +623,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current visible state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const visible = await appWindow.isVisible();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const visible = await getCurrent().isVisible();
      * ```
      *
      * @returns Whether the window is visible or not.
@@ -517,8 +640,8 @@ class WindowManager extends WebviewWindowHandle {
      * Gets the window's current title.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const title = await appWindow.title();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const title = await getCurrent().title();
      * ```
      *
      * @since 2.0.0
@@ -537,8 +660,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * const theme = await appWindow.theme();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * const theme = await getCurrent().theme();
      * ```
      *
      * @returns The window theme.
@@ -555,8 +678,8 @@ class WindowManager extends WebviewWindowHandle {
      * Centers the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.center();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().center();
      * ```
      *
      * @param resizable
@@ -583,8 +706,8 @@ class WindowManager extends WebviewWindowHandle {
      * - **Linux:** Urgency levels have the same effect.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.requestUserAttention();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().requestUserAttention();
      * ```
      *
      * @param requestType
@@ -611,8 +734,8 @@ class WindowManager extends WebviewWindowHandle {
      * Updates the window resizable flag.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setResizable(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setResizable(false);
      * ```
      *
      * @param resizable
@@ -637,8 +760,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setMaximizable(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setMaximizable(false);
      * ```
      *
      * @param maximizable
@@ -659,8 +782,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setMinimizable(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setMinimizable(false);
      * ```
      *
      * @param minimizable
@@ -682,8 +805,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setClosable(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setClosable(false);
      * ```
      *
      * @param closable
@@ -699,8 +822,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window title.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setTitle('Tauri');
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setTitle('Tauri');
      * ```
      *
      * @param title The new title
@@ -718,8 +841,8 @@ class WindowManager extends WebviewWindowHandle {
      * Maximizes the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.maximize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().maximize();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -735,8 +858,8 @@ class WindowManager extends WebviewWindowHandle {
      * Unmaximizes the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.unmaximize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().unmaximize();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -752,8 +875,8 @@ class WindowManager extends WebviewWindowHandle {
      * Toggles the window maximized state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.toggleMaximize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().toggleMaximize();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -769,8 +892,8 @@ class WindowManager extends WebviewWindowHandle {
      * Minimizes the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.minimize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().minimize();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -786,8 +909,8 @@ class WindowManager extends WebviewWindowHandle {
      * Unminimizes the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.unminimize();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().unminimize();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -803,8 +926,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window visibility to true.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.show();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().show();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -820,8 +943,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window visibility to false.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.hide();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().hide();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -837,8 +960,8 @@ class WindowManager extends WebviewWindowHandle {
      * Closes the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.close();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().close();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -854,8 +977,8 @@ class WindowManager extends WebviewWindowHandle {
      * Whether the window should have borders and bars.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setDecorations(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setDecorations(false);
      * ```
      *
      * @param decorations Whether the window should have borders and bars.
@@ -882,8 +1005,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setShadow(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setShadow(false);
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -922,8 +1045,8 @@ class WindowManager extends WebviewWindowHandle {
      * Whether the window should always be on top of other windows.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setAlwaysOnTop(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setAlwaysOnTop(true);
      * ```
      *
      * @param alwaysOnTop Whether the window should always be on top of other windows or not.
@@ -941,8 +1064,8 @@ class WindowManager extends WebviewWindowHandle {
      * Prevents the window contents from being captured by other apps.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setContentProtected(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setContentProtected(true);
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -959,8 +1082,8 @@ class WindowManager extends WebviewWindowHandle {
      * Resizes the window with a new inner size.
      * @example
      * ```typescript
-     * import { appWindow, LogicalSize } from '@tauri-apps/plugin-window';
-     * await appWindow.setSize(new LogicalSize(600, 500));
+     * import { getCurrent, LogicalSize } from '@tauri-apps/plugin-window';
+     * await getCurrent().setSize(new LogicalSize(600, 500));
      * ```
      *
      * @param size The logical or physical inner size.
@@ -987,8 +1110,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window minimum inner size. If the `size` argument is not provided, the constraint is unset.
      * @example
      * ```typescript
-     * import { appWindow, PhysicalSize } from '@tauri-apps/plugin-window';
-     * await appWindow.setMinSize(new PhysicalSize(600, 500));
+     * import { getCurrent, PhysicalSize } from '@tauri-apps/plugin-window';
+     * await getCurrent().setMinSize(new PhysicalSize(600, 500));
      * ```
      *
      * @param size The logical or physical inner size, or `null` to unset the constraint.
@@ -1017,8 +1140,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window maximum inner size. If the `size` argument is undefined, the constraint is unset.
      * @example
      * ```typescript
-     * import { appWindow, LogicalSize } from '@tauri-apps/plugin-window';
-     * await appWindow.setMaxSize(new LogicalSize(600, 500));
+     * import { getCurrent, LogicalSize } from '@tauri-apps/plugin-window';
+     * await getCurrent().setMaxSize(new LogicalSize(600, 500));
      * ```
      *
      * @param size The logical or physical inner size, or `null` to unset the constraint.
@@ -1047,8 +1170,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window outer position.
      * @example
      * ```typescript
-     * import { appWindow, LogicalPosition } from '@tauri-apps/plugin-window';
-     * await appWindow.setPosition(new LogicalPosition(600, 500));
+     * import { getCurrent, LogicalPosition } from '@tauri-apps/plugin-window';
+     * await getCurrent().setPosition(new LogicalPosition(600, 500));
      * ```
      *
      * @param position The new position, in logical or physical pixels.
@@ -1076,8 +1199,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window fullscreen state.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setFullscreen(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setFullscreen(true);
      * ```
      *
      * @param fullscreen Whether the window should go to fullscreen or not.
@@ -1095,8 +1218,8 @@ class WindowManager extends WebviewWindowHandle {
      * Bring the window to front and focus.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setFocus();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setFocus();
      * ```
      *
      * @returns A promise indicating the success or failure of the operation.
@@ -1112,8 +1235,8 @@ class WindowManager extends WebviewWindowHandle {
      * Sets the window icon.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setIcon('/tauri/awesome.png');
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setIcon('/tauri/awesome.png');
      * ```
      *
      * Note that you need the `icon-ico` or `icon-png` Cargo features to use this API.
@@ -1142,8 +1265,8 @@ class WindowManager extends WebviewWindowHandle {
      * - **macOS:** Unsupported.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setSkipTaskbar(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setSkipTaskbar(true);
      * ```
      *
      * @param skip true to hide window icon, false to show it.
@@ -1169,8 +1292,8 @@ class WindowManager extends WebviewWindowHandle {
      * - **macOS:** This locks the cursor in a fixed location, which looks visually awkward.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setCursorGrab(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setCursorGrab(true);
      * ```
      *
      * @param grab `true` to grab the cursor icon, `false` to release it.
@@ -1194,8 +1317,8 @@ class WindowManager extends WebviewWindowHandle {
      *   outside of the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setCursorVisible(false);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setCursorVisible(false);
      * ```
      *
      * @param visible If `false`, this will hide the cursor. If `true`, this will show the cursor.
@@ -1213,8 +1336,8 @@ class WindowManager extends WebviewWindowHandle {
      * Modifies the cursor icon of the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setCursorIcon('help');
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setCursorIcon('help');
      * ```
      *
      * @param icon The new cursor icon.
@@ -1232,8 +1355,8 @@ class WindowManager extends WebviewWindowHandle {
      * Changes the position of the cursor in window coordinates.
      * @example
      * ```typescript
-     * import { appWindow, LogicalPosition } from '@tauri-apps/plugin-window';
-     * await appWindow.setCursorPosition(new LogicalPosition(600, 300));
+     * import { getCurrent, LogicalPosition } from '@tauri-apps/plugin-window';
+     * await getCurrent().setCursorPosition(new LogicalPosition(600, 300));
      * ```
      *
      * @param position The new cursor position.
@@ -1262,8 +1385,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.setIgnoreCursorEvents(true);
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().setIgnoreCursorEvents(true);
      * ```
      *
      * @param ignore `true` to ignore the cursor events; `false` to process them as usual.
@@ -1281,8 +1404,8 @@ class WindowManager extends WebviewWindowHandle {
      * Starts dragging the window.
      * @example
      * ```typescript
-     * import { appWindow } from '@tauri-apps/plugin-window';
-     * await appWindow.startDragging();
+     * import { getCurrent } from '@tauri-apps/plugin-window';
+     * await getCurrent().startDragging();
      * ```
      *
      * @return A promise indicating the success or failure of the operation.
@@ -1300,8 +1423,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onResized(({ payload: size }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onResized(({ payload: size }) => {
      *  console.log('Window resized', size);
      * });
      *
@@ -1325,8 +1448,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onMoved(({ payload: position }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onMoved(({ payload: position }) => {
      *  console.log('Window moved', position);
      * });
      *
@@ -1350,9 +1473,9 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * import { confirm } from '@tauri-apps/plugin-dialog';
-     * const unlisten = await appWindow.onCloseRequested(async (event) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * import { confirm } from '@tauri-apps/api/dialog';
+     * const unlisten = await getCurrent().onCloseRequested(async (event) => {
      *   const confirmed = await confirm('Are you sure?');
      *   if (!confirmed) {
      *     // user did not confirm closing the window; let's prevent it
@@ -1386,8 +1509,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onFocusChanged(({ payload: focused }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onFocusChanged(({ payload: focused }) => {
      *  console.log('Focus changed, window is focused? ' + focused);
      * });
      *
@@ -1421,8 +1544,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onScaleChanged(({ payload }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onScaleChanged(({ payload }) => {
      *  console.log('Scale changed', payload.scaleFactor, payload.size);
      * });
      *
@@ -1443,8 +1566,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onMenuClicked(({ payload: menuId }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onMenuClicked(({ payload: menuId }) => {
      *  console.log('Menu clicked: ' + menuId);
      * });
      *
@@ -1467,8 +1590,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onFileDropEvent((event) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onFileDropEvent((event) => {
      *  if (event.payload.type === 'hover') {
      *    console.log('User hovering', event.payload.paths);
      *  } else if (event.payload.type === 'drop') {
@@ -1508,8 +1631,8 @@ class WindowManager extends WebviewWindowHandle {
      *
      * @example
      * ```typescript
-     * import { appWindow } from "@tauri-apps/plugin-window";
-     * const unlisten = await appWindow.onThemeChanged(({ payload: theme }) => {
+     * import { getCurrent } from "@tauri-apps/plugin-window";
+     * const unlisten = await getCurrent().onThemeChanged(({ payload: theme }) => {
      *  console.log('New theme: ' + theme);
      * });
      *
@@ -1525,149 +1648,6 @@ class WindowManager extends WebviewWindowHandle {
     async onThemeChanged(handler) {
         return this.listen(TauriEvent.WINDOW_THEME_CHANGED, handler);
     }
-}
-/**
- * @since 2.0.0
- */
-class CloseRequestedEvent {
-    constructor(event) {
-        this._preventDefault = false;
-        this.event = event.event;
-        this.windowLabel = event.windowLabel;
-        this.id = event.id;
-    }
-    preventDefault() {
-        this._preventDefault = true;
-    }
-    isPreventDefault() {
-        return this._preventDefault;
-    }
-}
-/**
- * Create new webview windows and get a handle to existing ones.
- *
- * Windows are identified by a *label*  a unique identifier that can be used to reference it later.
- * It may only contain alphanumeric characters `a-zA-Z` plus the following special characters `-`, `/`, `:` and `_`.
- *
- * @example
- * ```typescript
- * // loading embedded asset:
- * const webview = new WebviewWindow('theUniqueLabel', {
- *   url: 'path/to/page.html'
- * });
- * // alternatively, load a remote URL:
- * const webview = new WebviewWindow('theUniqueLabel', {
- *   url: 'https://github.com/tauri-apps/tauri'
- * });
- *
- * webview.once('tauri://created', function () {
- *  // webview window successfully created
- * });
- * webview.once('tauri://error', function (e) {
- *  // an error happened creating the webview window
- * });
- *
- * // emit an event to the backend
- * await webview.emit("some event", "data");
- * // listen to an event from the backend
- * const unlisten = await webview.listen("event name", e => {});
- * unlisten();
- * ```
- *
- * @since 2.0.0
- */
-class WebviewWindow extends WindowManager {
-    /**
-     * Creates a new WebviewWindow.
-     * @example
-     * ```typescript
-     * import { WebviewWindow } from '@tauri-apps/plugin-window';
-     * const webview = new WebviewWindow('my-label', {
-     *   url: 'https://github.com/tauri-apps/tauri'
-     * });
-     * webview.once('tauri://created', function () {
-     *  // webview window successfully created
-     * });
-     * webview.once('tauri://error', function (e) {
-     *  // an error happened creating the webview window
-     * });
-     * ```
-     *
-     * * @param label The unique webview window label. Must be alphanumeric: `a-zA-Z-/:_`.
-     * @returns The WebviewWindow instance to communicate with the webview.
-     *
-     * @since 2.0.0
-     */
-    constructor(label, options = {}) {
-        super(label);
-        // @ts-expect-error `skip` is not a public API so it is not defined in WindowOptions
-        if (!(options === null || options === void 0 ? void 0 : options.skip)) {
-            window
-                .__TAURI_INVOKE__("plugin:window|create", {
-                options: {
-                    ...options,
-                    label,
-                },
-            })
-                .then(async () => this.emit("tauri://created"))
-                .catch(async (e) => this.emit("tauri://error", e));
-        }
-    }
-    /**
-     * Gets the WebviewWindow for the webview associated with the given label.
-     * @example
-     * ```typescript
-     * import { WebviewWindow } from '@tauri-apps/plugin-window';
-     * const mainWindow = WebviewWindow.getByLabel('main');
-     * ```
-     *
-     * @param label The webview window label.
-     * @returns The WebviewWindow instance to communicate with the webview or null if the webview doesn't exist.
-     *
-     * @since 2.0.0
-     */
-    static getByLabel(label) {
-        if (getAll().some((w) => w.label === label)) {
-            // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
-            return new WebviewWindow(label, { skip: true });
-        }
-        return null;
-    }
-    /**
-     *  Gets the focused window.
-     * @example
-     * ```typescript
-     * import { WebviewWindow } from '@tauri-apps/plugin-window';
-     * const focusedWindow = WebviewWindow.getFocusedWindow();
-     * ```
-     *
-     * @returns The WebviewWindow instance to communicate with the webview or `undefined` if there is not any focused window.
-     *
-     * @since 1.4
-     */
-    static async getFocusedWindow() {
-        for (const w of getAll()) {
-            if (await w.isFocused()) {
-                return w;
-            }
-        }
-        return null;
-    }
-}
-/** The WebviewWindow for the current window. */
-let appWindow;
-if ("__TAURI_METADATA__" in window) {
-    appWindow = new WebviewWindow(window.__TAURI_METADATA__.__currentWindow.label, {
-        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
-        skip: true,
-    });
-}
-else {
-    console.warn(`Could not find "window.__TAURI_METADATA__". The "appWindow" value will reference the "main" window label.\nNote that this is not an issue if running this frontend on a browser instead of a Tauri window.`);
-    appWindow = new WebviewWindow("main", {
-        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
-        skip: true,
-    });
 }
 /**
  * Platform-specific window effects
@@ -1869,5 +1849,5 @@ async function availableMonitors() {
         .then((ms) => ms.map(mapMonitor));
 }
 
-export { CloseRequestedEvent, Effect, EffectState, LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, UserAttentionType, WebviewWindow, WebviewWindowHandle, WindowManager, appWindow, availableMonitors, currentMonitor, getAll, getCurrent, primaryMonitor };
+export { CloseRequestedEvent, Effect, EffectState, LogicalPosition, LogicalSize, PhysicalPosition, PhysicalSize, UserAttentionType, Window, availableMonitors, currentMonitor, getAll, getCurrent, primaryMonitor };
 //# sourceMappingURL=index.mjs.map
